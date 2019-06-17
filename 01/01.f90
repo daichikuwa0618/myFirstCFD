@@ -42,22 +42,25 @@ module myMod
 
     ! セルデータの構造体
     type cell_data
-        real(p2) :: xg  ! Cell-center coordinate
-        real(p2) :: u   ! Conservative variable
-        real(p2) :: u0  ! previous time step value
-        real(p2) :: res ! Residual = f_{j+1/2) - f_{j-1/2)
+        real(p2) :: xg   ! Cell-center coordinate
+        real(p2) :: u    ! Conservative variable
+        real(p2) :: u0   ! previous time step value
+        real(p2) :: res  ! Residual = f_{j+1/2) - f_{j-1/2)
     end type cell_data
 
     ! Local variables
-    type(cell_data), allocatable :: cell(:) ! Array of cell-data
+    type(cell_data), allocatable :: cell(:)    ! Array of cell-data
+    real(p2), allocatable        :: flux(:)    ! Numerical Flux
     real(p2)                     :: xmin, xmax ! 領域の端
-    real(p2)                     :: dx         ! セル幅
+    real(p2)                     :: dx, dt     ! 空間・時間刻み幅
     real(p2)                     :: t, tf      ! 現在と最後の時間
-    real(p2)                     :: cfl, dt    ! CFL 数と時間刻み幅
+    real(p2)                     :: cfl        ! CFL 数と時間刻み幅
     integer                      :: ncells     ! セル数
     integer                      :: nsteps     ! 時間ステップ数
     integer                      :: itime      ! 時間ステップのインデックス
     integer                      :: i, j       ! ループで使う
+    integer                      :: step,stepf ! ステップ数と終了ステップ数
+    integer                      :: wrtStep    ! 書き出すステップ
 end module myMod
 
 ! ======================================================================
@@ -73,16 +76,26 @@ program main
     call grid
     ! I.C.
     call init
+    ! write Initial profile
+    call wrtData
 
-    ! loop
-    do while (t < tf)
+    t = 0.0_p2
+    step = 0
+    ! loop 時間かステップが終了するまで
+    do while ((t < tf).and.(step < stepf))
+        step = step + 1
+        t    = t + dt
         ! numerical flux
-        call flux
+        call numFlux
         ! time integration
         call intg
         ! Boundary Condition
         call bdry
+        ! write data
+        call wrtData
     end do
+
+    write(6,*)'end! t=',t,'step=',step
 
 end program main
 ! ======================================================================
@@ -95,17 +108,22 @@ end program main
 subroutine param
     use myMod
     ! parameters
-    ncells = 100    ! numbers of cells
-    tf     = 1.0_p2 ! Final time
-    cfl    = 0.5    ! CFL number
-    xmin   = 0.0_p2 ! Left boundary coordinate
-    xmax   = 1.0_p2 ! Right boundary coordinate
+    ncells  = 100    ! numbers of cells
+    tf      = 1.0_p2 ! Final time
+    stepf   = 100    ! Final step
+    wrtStep = 5      ! write step
+    cfl     = 0.5    ! CFL number
+    xmin    = 0.0_p2 ! Left boundary coordinate
+    xmax    = 1.0_p2 ! Right boundary coordinate
 
     ! ゴーストセルも含めて allocate する
-    allocate(cell(0:ncells+1))
+    allocate(cell(0:ncells+1)) ! セルデータ
+    allocate(flux(1:ncells+1)) ! Numerical Flux
 
     ! セル幅
     dx = (xmax-xmin)/real(ncells)
+    ! 時間刻み幅
+    dt = cfl*dx
 end subroutine param
 
 ! ===============================================
@@ -135,21 +153,47 @@ end subroutine init
 
 ! ===============================================
 ! Numerical Flux
+! 1 次精度風上差分
+! ~f_i+1/2 = 1/2{(f_i+1 + f_i) - |c|(u_i+1 - u_i)}
 ! ===============================================
-subroutine flux
-
-end subroutine flux
+subroutine numFlux
+    use myMod
+    do i = 1, ncells+1
+        flux(i) = cell(i)%u
+    end do
+end subroutine numFlux
 
 ! ===============================================
 ! Time Integration
 ! ===============================================
 subroutine intg
-
+    use myMod
+    do i = 1, ncells
+        cell(i)%u = cell(i)%u - (dt/dx)*(flux(i+1)-flux(i))
+    end do
 end subroutine intg
 
 ! ===============================================
 ! Boundary Condition
 ! ===============================================
 subroutine bdry
-
+    use myMod
+    cell(0)%u        = cell(1)%u
+    cell(ncells+1)%u = cell(ncells)%u
 end subroutine bdry
+
+! ===============================================
+! Output data
+! ===============================================
+subroutine wrtData
+    use myMod
+    character field*50
+    if(mod(step,wrtStep).eq.0) then
+        write(field,'(a,i6.6,a)') "./output/field",step,".dat"
+        open(10,file=field,form='formatted',status='replace')
+        do i = 1,ncells
+            write(10,*) (cell(i)%xg,cell(i)%u)
+        end do
+        close(10)
+    end if
+end subroutine wrtData
