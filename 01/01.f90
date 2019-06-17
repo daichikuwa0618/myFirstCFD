@@ -42,10 +42,10 @@ module myMod
 
     ! セルデータの構造体
     type cell_data
-        real(p2) :: xg     ! Cell-center coordinate
-        real(p2) :: u(1)   ! Conservative variable
-        real(p2) :: u0(1)  ! previous time step value
-        real(p2) :: res(1) ! Residual = f_{j+1/2) - f_{j-1/2)
+        real(p2) :: xg  ! Cell-center coordinate
+        real(p2) :: u   ! Conservative variable
+        real(p2) :: u0  ! previous time step value
+        real(p2) :: res ! Residual = f_{j+1/2) - f_{j-1/2)
     end type cell_data
 
     ! Local variables
@@ -74,6 +74,16 @@ program main
     ! I.C.
     call init
 
+    ! loop
+    do while (t < tf)
+        ! numerical flux
+        call flux
+        ! time integration
+        call intg
+        ! Boundary Condition
+        call bdry
+    end do
+
 end program main
 ! ======================================================================
 ! main end
@@ -88,8 +98,8 @@ subroutine param
     ncells = 100    ! numbers of cells
     tf     = 1.0_p2 ! Final time
     cfl    = 0.5    ! CFL number
-    xmin   = zero   ! Left boundary coordinate
-    xmax   = one    ! Right boundary coordinate
+    xmin   = 0.0_p2 ! Left boundary coordinate
+    xmax   = 1.0_p2 ! Right boundary coordinate
 
     ! ゴーストセルも含めて allocate する
     allocate(cell(0:ncells+1))
@@ -104,7 +114,7 @@ end subroutine param
 subroutine grid
     use myMod
     do i = 0, ncells+1
-        cell(i)%xc = xmin+real(i-1)*dx
+        cell(i)%xg = xmin+real(i-1)*dx
     end do
 end subroutine grid
 
@@ -115,6 +125,31 @@ end subroutine grid
 subroutine init
     use myMod
     do i = 0, ncells+1
-        if(cell(i)%)
+        if (cell(i)%xg <= 0.5_p2) then
+            cell(i)%u = 1.0_p2
+        else
+            cell(i)%u = 0.0_p2
+        endif
     end do
 end subroutine init
+
+! ===============================================
+! Numerical Flux
+! ===============================================
+subroutine flux
+
+end subroutine flux
+
+! ===============================================
+! Time Integration
+! ===============================================
+subroutine intg
+
+end subroutine intg
+
+! ===============================================
+! Boundary Condition
+! ===============================================
+subroutine bdry
+
+end subroutine bdry
