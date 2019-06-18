@@ -110,7 +110,7 @@ subroutine param
     ! parameters
     ncells  = 100    ! numbers of cells
     tf      = 5.0_p2 ! Final time
-    stepf   = 500    ! Final step
+    stepf   = 250    ! Final step
     wrtStep = 1      ! write step
     cfl     = 0.5_p2 ! CFL number
     xmin    = 0.0_p2 ! Left boundary coordinate
@@ -157,7 +157,7 @@ end subroutine init
 ! ===============================================
 subroutine numFlux
     use myMod
-    do i = 1, ncells+1
+    do i = 0, ncells+1
         flux(i) = cell(i)%u
     end do
 end subroutine numFlux
