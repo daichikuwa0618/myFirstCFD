@@ -35,7 +35,7 @@
 module myMod
     implicit none
     ! Note: change 13 -> 5 to make everything single precision
-    integer , parameter :: p2 = selected_real_kind(13) ! Double Precision
+    integer , parameter ::   p2 = selected_real_kind(13) ! Double Precision
     real(p2), parameter :: zero = 0.0_p2
     real(p2), parameter ::  one = 1.0_p2
     real(p2), parameter :: half = 0.5_p2
@@ -109,10 +109,10 @@ subroutine param
     use myMod
     ! parameters
     ncells  = 100    ! numbers of cells
-    tf      = 1.0_p2 ! Final time
-    stepf   = 100    ! Final step
-    wrtStep = 5      ! write step
-    cfl     = 0.5    ! CFL number
+    tf      = 5.0_p2 ! Final time
+    stepf   = 500    ! Final step
+    wrtStep = 1      ! write step
+    cfl     = 0.5_p2 ! CFL number
     xmin    = 0.0_p2 ! Left boundary coordinate
     xmax    = 1.0_p2 ! Right boundary coordinate
 
@@ -135,7 +135,6 @@ subroutine grid
         cell(i)%xg = xmin+real(i-1)*dx
     end do
 end subroutine grid
-
 
 ! ===============================================
 ! Initial Condition
@@ -169,7 +168,7 @@ end subroutine numFlux
 subroutine intg
     use myMod
     do i = 1, ncells
-        cell(i)%u = cell(i)%u - (dt/dx)*(flux(i+1)-flux(i))
+        cell(i)%u = cell(i)%u - (dt/dx)*(flux(i)-flux(i-1))
     end do
 end subroutine intg
 
