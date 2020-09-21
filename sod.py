@@ -1,11 +1,12 @@
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 nStep = 300
-iMax = 100
+iMax = 200
 dt = 0.001
-dx = 0.01
+dx = 0.005
 
 iMax = iMax + 2 #including ghost cell
 
@@ -84,9 +85,9 @@ def fvs():
         Ap = np.dot((np.dot(R,Gam+GamAbs)),RInv)
         # at cell[i+1]
         R,RInv,Gam,GamAbs = Apm(i+1)
-        Am = np.dot((np.dot(R,Gam-GamAbs)),RInv)
+        Am = np.dot((np.dot(R,Gam-GamAbs)),RInv) #eq.6.36
 
-        fluxPlus[i] = 0.5*(np.dot(Ap,Qc[i]) + np.dot(Am,Qc[i+1]))
+        fluxPlus[i] = 0.5*(np.dot(Ap,Qc[i]) + np.dot(Am,Qc[i+1])) # eq. 6.41
 
 def Apm(n):
     H = (Qc[n][2] + qf[n][2])/Qc[n][0] # enthalpy
@@ -97,10 +98,10 @@ def Apm(n):
 
     R = np.array([[1.,    1.,       1.],\
                   [u-c,   u,        u+c],\
-                  [H-u*c, 0.5*u**2, H+u*c]])
+                  [H-u*c, 0.5*u**2, H+u*c]]) # 5.76
     RInv = np.array([[0.5*(b1+u/c), 0.5*(-b2*u-1/c), 0.5*b2],\
                      [1-b1,         b2*u,            -b2],\
-                     [0.5*(b1-u/c), 0.5*(-b2*u+1/c), 0.5*b2]])
+                     [0.5*(b1-u/c), 0.5*(-b2*u+1/c), 0.5*b2]]) # 5.77
     Gam = np.array([[u-c, 0., 0.],\
                     [0.,  u,  0.],\
                     [0.,  0., u+c]])
@@ -109,7 +110,7 @@ def Apm(n):
                        [0.,       0.,     abs(u+c)]])
     return R,RInv,Gam,GamAbs
 
-def qf2Qc(qf): # qf -> Qc
+def qf2Qc(qf): # qf -> Qc ! no use in sod
     lo_Qc = np.zeros((iMax,3))
     for i in range(iMax):
         lo_Qc[i][0] = qf[i][1]
@@ -117,7 +118,7 @@ def qf2Qc(qf): # qf -> Qc
         lo_Qc[i][2] = (qf[i][2]/(gamma-1) + 0.5*qf[i][1]*(qf[i][0]**2))
     return lo_Qc
 
-def Qc2qf(Qc):
+def Qc2qf(Qc): # Qc -> qf
     lo_qf = np.zeros((iMax,3))
     for i in range(iMax):
         lo_qf[i][0] = Qc[i][1]/Qc[i][0]
@@ -140,11 +141,26 @@ def mkdir():
     except:
         pass
 
+fig = plt.figure()
+ax1 = fig.add_subplot(311)
+ax2 = fig.add_subplot(312)
+ax3 = fig.add_subplot(313)
+
+ims = []
+
 mkdir()
 initialCondition()
 for i in range(nStep):
-    print(i)
+    #print(i)
     calQ()
     qf = Qc2qf(Qc)
 
     output("output","time"+"{:0=4}".format(int(i))+"d-3",qf,x)
+    up, = ax1.plot(x[:],qf[:,0],color='red',label='u')
+    rhop, = ax2.plot(x[:],qf[:,1],color='blue',label='rho')
+    pp, = ax3.plot(x[:],qf[:,2],color='green',label='p')
+    ims.append([up,rhop,pp])
+
+ani = animation.ArtistAnimation(fig,ims,interval=10)
+ani.save('anim.gif',writer='imagemagick')
+plt.show()
